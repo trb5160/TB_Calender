@@ -1,188 +1,71 @@
-$(document).ready(function() {
-  
-  // test flag
-  const test = false;
+// Define DOM variables
+var currentDayP = $("#currentDay");
+var timeBlockContainer = $(".container");
 
-  // get times from moment
-  const now = moment().format('MMMM Do YYYY');
+// Define Moment variables
+var dayOfWeek = moment().format('dddd');
+var date = moment().format('MMMM Do');
 
-  // commented out for test in non-standard hours
-  let nowHour24 = moment().format('H');
-  let nowHour12 = moment().format('h');
+// Load array of Timeblock objects from local storage
+var timeblocks = JSON.parse(localStorage.getItem("timeblocks"));
 
-  // set times for tesitng after hours
-  if (test) {
-    nowHour24 = 13;
-    nowHour12 = 1;
-  }
+// If the array does not exist, do this:
+// Define a Timeblock object constructor and a Timeblock representing each business hour
+if (timeblocks === null) {
+    timeblocks = [];
 
-  let $dateHeading = $('#navbar-subtitle');
-  $dateHeading.text(now);
-  
-  // using font awesome icon https://fontawesome.com/license
-  // change description here - none
-  const saveIcon = "./images/save-regular.svg"; 
-
-  // Get stored todos from localStorage
-  // Parsing the JSON string to an object
-  let storedPlans = JSON.parse(localStorage.getItem("storedPlans"));
-
-  if (test) { console.log(storedPlans); }
-
-  // If plans were retrieved from localStorage, update the plan array to it
-  if (storedPlans !== null) {
-    planTextArr = storedPlans;
-  } else {
-    // this should only occur on first time the app is loaded in the browser
-    // helpfully remind user that lunch is important
-    planTextArr = new Array(9);
-    planTextArr[4] = "Picnic lunch outside";
-  }
-
-  if (test) { console.log("full array of plned text",planTextArr); }
-
-  // set variable referencing planner element
-  let $plannerDiv = $('#plannerContainer');
-  // clear existing elements
-  $plannerDiv.empty();
-
-  if (test) { console.log("current time",nowHour12); }
-
-
-  // build calendar by row for fix set of hours
-  for (let hour = 9; hour <= 17; hour++) {
-    // index for array use offset from hour
-    let index = hour - 9;
-    
-    // build row components
-    let $rowDiv = $('<div>');
-    $rowDiv.addClass('row');
-    $rowDiv.addClass('plannerRow');
-    $rowDiv.attr('hour-index',hour);
-  
-    // Start building Time box portion of row
-    let $col2TimeDiv = $('<div>');
-    $col2TimeDiv.addClass('col-md-2');
-  
-    // create timeBox element (contains time)
-    const $timeBoxSpn = $('<span>');
-    // can use this to get value
-    $timeBoxSpn.attr('class','timeBox');
-    
-    // format hours for display
-    let displayHour = 0;
-    let ampm = "";
-    if (hour > 12) { 
-      displayHour = hour - 12;
-      ampm = "pm";
-    } else {
-      displayHour = hour;
-      ampm = "am";
+    class Timeblock {
+    constructor(hour, text) {
+        this.hour = hour;
+        this.text = text;
+        }
     }
-    
-    // populate timeBox with time
-    $timeBoxSpn.text(`${displayHour} ${ampm}`);
 
-    // insert into col inset into timebox
-    $rowDiv.append($col2TimeDiv);
-    $col2TimeDiv.append($timeBoxSpn);
-    // STOP building Time box portion of row
-
-    // START building input portion of row
-    // build row components
-    let $dailyPlanSpn = $('<input>');
-
-    $dailyPlanSpn.attr('id',`input-${index}`);
-    $dailyPlanSpn.attr('hour-index',index);
-    $dailyPlanSpn.attr('type','text');
-    $dailyPlanSpn.attr('class','dailyPlan');
-
-    // access index from data array for hour 
-    $dailyPlanSpn.val( planTextArr[index] );
-    
-    // create col to control width
-    let $col9IptDiv = $('<div>');
-    $col9IptDiv.addClass('col-md-9');
-
-    // add col width and row component to row
-    $rowDiv.append($col9IptDiv);
-    $col9IptDiv.append($dailyPlanSpn);
-    // STOP building Time box portion of row
-
-    // START building save portion of row
-    let $col1SaveDiv = $('<div>');
-    $col1SaveDiv.addClass('col-md-1');
-
-    let $saveBtn = $('<i>');
-    $saveBtn.attr('id',`saveid-${index}`);
-    $saveBtn.attr('save-id',index);
-    $saveBtn.attr('class',"far fa-save saveIcon");
-    
-    // add col width and row component to row
-    $rowDiv.append($col1SaveDiv);
-    $col1SaveDiv.append($saveBtn);
-    // STOP building save portion of row
-
-    // set row color based on time
-    updateRowColor($rowDiv, hour);
-    
-    // add row to planner container
-    $plannerDiv.append($rowDiv);
-  };
-
-  // function to update row color
-  function updateRowColor ($hourRow,hour) { 
-
-    if (test) { console.log("rowColor ",nowHour24, hour); }
-
-    if ( hour < nowHour24) {
-      // $hourRow.css('')
-      if (test) { console.log("lessThan"); }
-      $hourRow.css("background-color","lightgrey")
-    } else if ( hour > nowHour24) {
-      if (test) { console.log("greaterthan"); }
-      $hourRow.css("background-color","lightgreen")
-    } else {
-      if (test) { console.log("eqaul"); }
-      $hourRow.css("background-color","tomato")
+    for (var hour = 8; hour < 19; hour++) {
+    var timeblock = new Timeblock(hour, "");
+    timeblocks.push(timeblock);
     }
-  };
+}
 
-  // saves to local storage
-  // conclick function to listen for user clicks on plan area
-  $(document).on('click','i', function(event) {
-    event.preventDefault();  
+// Display current date in jumbotron
+currentDayP.text(`Today is ${dayOfWeek}, ${date}`);
 
-    if (test) { console.log('click pta before '+ planTextArr); }
+// Display timeblocks for each business hour
+for (var i=8; i<19; i++) {
+    var hour = moment({ hour:i, minute:0 });
+    var hourFormatted = hour.format('h:mm A');
+    var timeComparison = "";
 
-    let $index = $(this).attr('save-id');
+    // Add conditional formatting for timeblock color
+    if (moment().isSame(hour, 'hour')) {
+        timeComparison = "present"
+    } else if (moment().isAfter(hour, 'hour')) {
+        timeComparison = "past"
+    } else {
+        timeComparison = "future"
+    }
 
-    let inputId = '#input-'+$index;
-    let $value = $(inputId).val();
+    // If applicable, get saved text for that hour from local storage
+    var savedText = timeblocks[i-8].text;
 
-    planTextArr[$index] = $value;
+    var timeBlockHTML = "";
+    timeBlockHTML = `
+        <div class="row">
+        <div class="hour col-1">${hourFormatted}</div>
+        <div class="${timeComparison} col-10"><textarea>${savedText}</textarea></div>
+        <div class="saveBtn col-1"><i data-hour="${i}" class="fas fa-save fa-2x"></i></div>
+        </div>`;
+    timeBlockContainer.append(timeBlockHTML);
+}
 
-
-    if (test) { console.log('value ', $value); }
-    if (test) { console.log('index ', $index); }
-    if (test) { console.log('click pta after '+ planTextArr); }
-
-    // remove shawdow pulse class
-    $(`#saveid-${$index}`).removeClass('shadowPulse');
-    localStorage.setItem("storedPlans", JSON.stringify(planTextArr));
-  });  
-  
-  // function to color save button on change of input
-  $(document).on('change','input', function(event) {
-    event.preventDefault();  
-    if (test) { console.log('onChange'); }
-    if (test) { console.log('id', $(this).attr('hour-index')); }
-
-    // neeed to check for save button
-
-    let i = $(this).attr('hour-index');
-
-    // add shawdow pulse class
-    $(`#saveid-${i}`).addClass('shadowPulse');
+// Add event handling to the Save Button on every timeblock
+// When clicked, the corresponding timeblock text gets sent to local storage
+var saveButtons = $(".fa-save");
+saveButtons.click(function(e) {
+        var target = $(e.target);
+        var textbox = $(target.parent().prev().children()[0]);
+        var savedText = textbox.val();
+        var timeblockIndex = e.target.dataset.hour - 8;
+        timeblocks[timeblockIndex].text = savedText;
+        localStorage.setItem("timeblocks", JSON.stringify(timeblocks));
   });
-});
